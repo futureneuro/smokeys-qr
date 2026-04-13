@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Table, ServiceRequestOption, Settings, Promotion, Restaurant } from '@prisma/client'
-import { Menu, Wifi, Star, MessageCircle, Info } from 'lucide-react'
+import { Menu, Wifi, Star, MessageCircle, Info, Bell, Tag } from 'lucide-react'
 import ActionButtons from './ActionButtons'
 import PromotionCards from './PromotionCards'
 import WifiInfo from './WifiInfo'
@@ -30,8 +30,16 @@ export default function ClientScanPage({
   settings,
   promotions,
 }: ClientScanPageProps) {
-  // TODO: Add tab navigation per UX review recommendations
   const [toast, setToast] = useState<ToastMessage | null>(null)
+  const [activeTab, setActiveTab] = useState('services')
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+      setActiveTab(id)
+    }
+  }
 
   const showToast = (message: string, type: ToastType = 'success') => {
     setToast({ message, type })
@@ -55,7 +63,7 @@ export default function ClientScanPage({
       {/* Main Content */}
       <div className="pb-24 px-4 max-w-2xl mx-auto">
         {/* Service Request Buttons - Always Visible */}
-        <div className="mt-6 mb-8">
+        <div id="services" className="mt-6 mb-8 scroll-mt-24">
           <h2 className="text-xl font-bold text-[#1a1a1a] mb-4">Need Something?</h2>
           <ActionButtons
             tableId={table.id}
@@ -67,7 +75,7 @@ export default function ClientScanPage({
 
         {/* Promotions Section */}
         {promotions.length > 0 && (
-          <div className="mb-8">
+          <div id="offers" className="mb-8 scroll-mt-24">
             <h2 className="text-xl font-bold text-[#1a1a1a] mb-4">Special Offers</h2>
             <PromotionCards promotions={promotions} />
           </div>
@@ -90,7 +98,7 @@ export default function ClientScanPage({
 
         {/* WiFi Section */}
         {settings?.wifiName && (
-          <div className="mb-8">
+          <div id="info" className="mb-8 scroll-mt-24">
             <h2 className="text-xl font-bold text-[#1a1a1a] mb-4 flex items-center gap-2">
               <Wifi size={20} className="text-[#ff6b35]" />
               WiFi Information
@@ -104,7 +112,7 @@ export default function ClientScanPage({
 
         {/* About Section */}
         {settings?.aboutText && (
-          <div className="mb-8">
+          <div id={!settings?.wifiName ? 'info' : undefined} className="mb-8 scroll-mt-24">
             <h2 className="text-xl font-bold text-[#1a1a1a] mb-4 flex items-center gap-2">
               <Info size={20} className="text-[#ff6b35]" />
               About Us
@@ -118,7 +126,7 @@ export default function ClientScanPage({
         )}
 
         {/* Review Section */}
-        <div className="mb-8">
+        <div id="feedback" className="mb-8 scroll-mt-24">
           <h2 className="text-xl font-bold text-[#1a1a1a] mb-4 flex items-center gap-2">
             <Star size={20} className="text-[#ff6b35]" />
             Share Your Feedback
@@ -175,6 +183,45 @@ export default function ClientScanPage({
       {toast && (
         <Toast type={toast.type} message={toast.message} />
       )}
+
+      {/* Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e0e0e0] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50">
+        <div className="max-w-2xl mx-auto flex justify-between px-2 py-3">
+          <button
+            onClick={() => scrollTo('services')}
+            className={`flex flex-col items-center flex-1 transition-colors ${activeTab === 'services' ? 'text-[#ff6b35]' : 'text-gray-500 hover:text-gray-800'}`}
+          >
+            <Bell size={24} className="mb-1" />
+            <span className="text-[10px] font-semibold text-center uppercase tracking-wider">Services</span>
+          </button>
+
+          {promotions.length > 0 && (
+            <button
+              onClick={() => scrollTo('offers')}
+              className={`flex flex-col items-center flex-1 transition-colors ${activeTab === 'offers' ? 'text-[#ff6b35]' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              <Tag size={24} className="mb-1" />
+              <span className="text-[10px] font-semibold text-center uppercase tracking-wider">Offers</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => scrollTo('info')}
+            className={`flex flex-col items-center flex-1 transition-colors ${activeTab === 'info' ? 'text-[#ff6b35]' : 'text-gray-500 hover:text-gray-800'}`}
+          >
+            <Info size={24} className="mb-1" />
+            <span className="text-[10px] font-semibold text-center uppercase tracking-wider">Info</span>
+          </button>
+
+          <button
+            onClick={() => scrollTo('feedback')}
+            className={`flex flex-col items-center flex-1 transition-colors ${activeTab === 'feedback' ? 'text-[#ff6b35]' : 'text-gray-500 hover:text-gray-800'}`}
+          >
+            <Star size={24} className="mb-1" />
+            <span className="text-[10px] font-semibold text-center uppercase tracking-wider">Feedback</span>
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
