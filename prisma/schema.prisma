@@ -1,0 +1,225 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  settings  Json?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  tables                Table[]
+  serviceRequestOptions ServiceRequestOption[]
+  serviceRequests       ServiceRequest[]
+  reviews               Review[]
+  customerContacts      CustomerContact[]
+  promotions            Promotion[]
+  menuCategories        MenuCategory[]
+  staff                 Staff[]
+  messages              Message[]
+  settingsRecord        Settings?
+}
+
+model Table {
+  id           String   @id @default(cuid())
+  number       Int
+  restaurantId String
+  qrCode       String?
+  status       TableStatus @default(AVAILABLE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  serviceRequests  ServiceRequest[]
+  reviews          Review[]
+  customerContacts CustomerContact[]
+
+  @@unique([restaurantId, number])
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+}
+
+model ServiceRequestOption {
+  id           String @id @default(cuid())
+  restaurantId String
+  label        String
+  icon         String?
+  order        Int    @default(0)
+  active       Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant     Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  serviceRequests ServiceRequest[]
+
+  @@unique([restaurantId, label])
+}
+
+model ServiceRequest {
+  id           String   @id @default(cuid())
+  tableId      String
+  restaurantId String
+  type         String
+  status       ServiceRequestStatus @default(PENDING)
+  staffId      String?
+  createdAt    DateTime @default(now())
+  acceptedAt   DateTime?
+  completedAt  DateTime?
+  updatedAt    DateTime @updatedAt
+
+  table        Table @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  staff        Staff?
+}
+
+enum ServiceRequestStatus {
+  PENDING
+  ACCEPTED
+  SNOOZED
+  COMPLETED
+  AUTO_COMPLETED
+}
+
+model Review {
+  id                 String   @id @default(cuid())
+  tableId            String
+  restaurantId       String
+  rating             Int      // 1-5
+  feedback           String?
+  redirectedToGoogle Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  table        Table @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
+
+model CustomerContact {
+  id           String   @id @default(cuid())
+  restaurantId String
+  tableId      String?
+  name         String?
+  phone        String?
+  email        String?
+  consent      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  table        Table?     @relation(fields: [tableId], references: [id], onDelete: SetNull)
+}
+
+model Promotion {
+  id           String   @id @default(cuid())
+  restaurantId String
+  title        String
+  description  String?
+  imageUrl     String?
+  linkUrl      String?
+  active       Boolean  @default(true)
+  startDate    DateTime?
+  endDate      DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
+
+model MenuCategory {
+  id           String   @id @default(cuid())
+  restaurantId String
+  name         String
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items        MenuItem[]
+
+  @@unique([restaurantId, name])
+}
+
+model MenuItem {
+  id           String   @id @default(cuid())
+  categoryId   String
+  name         String
+  description  String?
+  price        Float
+  imageUrl     String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category     MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+}
+
+model Staff {
+  id           String   @id @default(cuid())
+  restaurantId String
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         StaffRole @default(STAFF)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  serviceRequests ServiceRequest[]
+}
+
+enum StaffRole {
+  ADMIN
+  STAFF
+}
+
+model Message {
+  id           String   @id @default(cuid())
+  restaurantId String
+  type         MessageType
+  content      String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
+
+enum MessageType {
+  WELCOME
+  BUSY
+  PROMOTION
+  STAFF_TO_CUSTOMER
+}
+
+model Settings {
+  id                 String   @id @default(cuid())
+  restaurantId       String   @unique
+  throttleSeconds    Int      @default(30)
+  autoCloseMinutes   Int      @default(15)
+  googleReviewUrl    String?
+  menuUrl            String?
+  menuPdfUrl         String?
+  wifiName           String?
+  wifiPassword       String?
+  aboutText          String?
+  contactPhone       String?
+  contactEmail       String?
+  socialLinks        Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  restaurant         Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
