@@ -9,6 +9,7 @@ type ServiceRequestStatus = 'PENDING' | 'ACCEPTED' | 'SNOOZED' | 'COMPLETED' | '
 
 interface RequestCardProps {
   id: string
+  tableId: string
   tableNumber: number
   type: string
   status: ServiceRequestStatus
