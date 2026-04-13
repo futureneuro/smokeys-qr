@@ -46,7 +46,7 @@ export default function DashboardView({ restaurantId }: { restaurantId: string }
     value,
     unit = '',
   }: {
-    icon: React.ComponentType<{ size: number }>;
+    icon: any;
     label: string;
     value: string | number;
     unit?: string;

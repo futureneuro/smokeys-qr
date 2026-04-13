@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  // Auth check — staff/admin can view customer data
+  const session = await requireAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const restaurantId = request.nextUrl.searchParams.get('restaurantId');
     const exportFormat = request.nextUrl.searchParams.get('export');

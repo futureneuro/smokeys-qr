@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, ExternalLink } from 'lucide-react'
+import { Star } from 'lucide-react'
 
 interface ReviewFlowProps {
   tableId: string

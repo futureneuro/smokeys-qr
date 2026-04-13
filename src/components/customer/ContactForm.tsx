@@ -45,7 +45,7 @@ export default function ContactForm({
     }))
 
     // Real-time email validation
-    if (name === 'email' && value.trim()) {
+    if (name === 'email' && typeof value === 'string' && value.trim()) {
       if (!validateEmail(value)) {
         setEmailError('Please enter a valid email address')
       } else {

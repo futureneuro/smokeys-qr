@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Pause, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Check, Pause, Clock, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatTimeAgo, getUrgencyLevel } from '@/lib/utils'
 
@@ -23,7 +23,7 @@ export default function RequestCard({
   type,
   status,
   createdAt,
-  completedAt,
+  completedAt: _completedAt,
   onStatusChange,
 }: RequestCardProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -54,11 +54,6 @@ export default function RequestCard({
     urgent: 'bg-red-50',
   }
 
-  const urgencyIconColors = {
-    normal: 'text-green-600',
-    warning: 'text-yellow-600',
-    urgent: 'text-red-600',
-  }
 
   return (
     <div

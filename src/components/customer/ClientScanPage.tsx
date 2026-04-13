@@ -30,7 +30,7 @@ export default function ClientScanPage({
   settings,
   promotions,
 }: ClientScanPageProps) {
-  const [activeTab, setActiveTab] = useState<'service' | 'menu' | 'wifi' | 'review' | 'contact'>('service')
+  // TODO: Add tab navigation per UX review recommendations
   const [toast, setToast] = useState<ToastMessage | null>(null)
 
   const showToast = (message: string, type: ToastType = 'success') => {

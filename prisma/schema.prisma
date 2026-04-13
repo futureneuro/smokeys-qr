@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -69,20 +69,22 @@ model ServiceRequestOption {
 }
 
 model ServiceRequest {
-  id           String   @id @default(cuid())
-  tableId      String
-  restaurantId String
-  type         String
-  status       ServiceRequestStatus @default(PENDING)
-  staffId      String?
-  createdAt    DateTime @default(now())
-  acceptedAt   DateTime?
-  completedAt  DateTime?
-  updatedAt    DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  tableId                String
+  restaurantId           String
+  type                   String
+  status                 ServiceRequestStatus @default(PENDING)
+  staffId                String?
+  serviceRequestOptionId String?
+  createdAt              DateTime @default(now())
+  acceptedAt             DateTime?
+  completedAt            DateTime?
+  updatedAt              DateTime @updatedAt
 
-  table        Table @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  staff        Staff?
+  table                  Table @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  restaurant             Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  staff                  Staff? @relation(fields: [staffId], references: [id])
+  serviceRequestOption   ServiceRequestOption? @relation(fields: [serviceRequestOptionId], references: [id])
 }
 
 enum ServiceRequestStatus {

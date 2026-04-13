@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireAuth, requireAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  // Auth check — staff/admin can view settings
+  const session = await requireAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const restaurantId = request.nextUrl.searchParams.get('restaurantId');
 
@@ -36,6 +43,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  // Admin-only — only admins can change settings
+  const session = await requireAdmin();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { restaurantId, ...updateData } = body;
@@ -46,8 +59,6 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // TODO: Add authorization check
 
     // Get or create settings
     let settings = await db.settings.findFirst({

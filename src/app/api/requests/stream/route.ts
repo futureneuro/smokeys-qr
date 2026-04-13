@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { sseManager } from '@/lib/sse';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  // Auth check — only staff/admin can subscribe to request stream
+  const session = await requireAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const restaurantId = request.nextUrl.searchParams.get('restaurantId');
 
@@ -12,60 +19,60 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Create a ReadableStream for SSE
+    // Verify staff belongs to this restaurant
+    if ((session.user as any).restaurantId !== restaurantId) {
+      return NextResponse.json(
+        { error: 'Access denied — wrong restaurant' },
+        { status: 403 }
+      );
+    }
+
+    // Create a ReadableStream for SSE using the push-based SSEManager
+    const encoder = new TextEncoder();
     const stream = new ReadableStream({
-      async start(controller) {
-        const sendEvent = (data: any) => {
-          controller.enqueue(
-            new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`)
-          );
+      start(controller) {
+        // Register this client with the SSE manager
+        const wrappedController = {
+          enqueue: (data: string) => {
+            try {
+              controller.enqueue(encoder.encode(data));
+            } catch {
+              // Stream closed — handle gracefully
+            }
+          },
         };
 
-        let lastCheck = new Date();
+        sseManager.addClient(restaurantId, wrappedController as any);
 
-        const pollInterval = setInterval(async () => {
+        // Send initial heartbeat
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: new Date().toISOString() })}\n\n`)
+          );
+        } catch {
+          // Stream already closed
+        }
+
+        // Periodic heartbeat to keep connection alive (every 30s)
+        const heartbeatInterval = setInterval(() => {
           try {
-            const requests = await db.serviceRequest.findMany({
-              where: {
-                table: {
-                  restaurantId: restaurantId,
-                },
-                updatedAt: {
-                  gte: lastCheck,
-                },
-              },
-              include: {
-                table: true,
-              },
-              orderBy: {
-                updatedAt: 'desc',
-              },
-            });
-
-            if (requests.length > 0) {
-              requests.forEach((req) => {
-                sendEvent({
-                  type: 'REQUEST_UPDATE',
-                  data: req,
-                  timestamp: new Date().toISOString(),
-                });
-              });
-            }
-
-            lastCheck = new Date();
-          } catch (error) {
-            console.error('Error polling requests:', error);
-            sendEvent({
-              type: 'ERROR',
-              message: 'Error fetching updates',
-            });
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'HEARTBEAT', timestamp: new Date().toISOString() })}\n\n`)
+            );
+          } catch {
+            clearInterval(heartbeatInterval);
           }
-        }, 2000); // Poll every 2 seconds
+        }, 30000);
 
         // Handle client disconnect
         request.signal.addEventListener('abort', () => {
-          clearInterval(pollInterval);
-          controller.close();
+          clearInterval(heartbeatInterval);
+          sseManager.removeClient(restaurantId, wrappedController as any);
+          try {
+            controller.close();
+          } catch {
+            // Already closed
+          }
         });
       },
     });
@@ -73,8 +80,9 @@ export async function GET(request: NextRequest) {
     return new NextResponse(stream, {
       headers: {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-transform',
         Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no', // Disable nginx buffering
       },
     });
   } catch (error) {

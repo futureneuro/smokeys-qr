@@ -1,9 +1,10 @@
-import NextAuth from 'next-auth'
+import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
 import { prisma } from './db'
+import { getServerSession } from 'next-auth'
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -18,7 +19,7 @@ export const authOptions = {
 
         try {
           const staff = await prisma.staff.findUnique({
-            where: { email: credentials.email as string },
+            where: { email: credentials.email },
             include: { restaurant: true },
           })
 
@@ -27,7 +28,7 @@ export const authOptions = {
           }
 
           const isPasswordValid = await compare(
-            credentials.password as string,
+            credentials.password,
             staff.passwordHash
           )
 
@@ -43,6 +44,7 @@ export const authOptions = {
             restaurantId: staff.restaurantId,
           }
         } catch (error) {
+          console.error('Auth error during credential validation:', error)
           return null
         }
       },
@@ -52,16 +54,16 @@ export const authOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = user.role
-        token.restaurantId = user.restaurantId
+        token.role = (user as any).role
+        token.restaurantId = (user as any).restaurantId
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.role = token.role as string
-        session.user.restaurantId = token.restaurantId as string
+        ;(session.user as any).id = token.id as string
+        ;(session.user as any).role = token.role as string
+        ;(session.user as any).restaurantId = token.restaurantId as string
       }
       return session
     },
@@ -69,9 +71,41 @@ export const authOptions = {
   pages: {
     signIn: '/signin',
   },
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions)
+/**
+ * Server-side helper to get the current session.
+ * Use this in API routes and server components.
+ */
+export async function getAuth() {
+  return getServerSession(authOptions)
+}
+
+/**
+ * Server-side helper that returns the session or throws 401.
+ * Use in protected API route handlers.
+ */
+export async function requireAuth() {
+  const session = await getAuth()
+  if (!session?.user) {
+    return null
+  }
+  return session
+}
+
+/**
+ * Server-side helper that requires ADMIN role.
+ */
+export async function requireAdmin() {
+  const session = await requireAuth()
+  if (!session) return null
+  if ((session.user as any).role !== 'ADMIN') return null
+  return session
+}
 
 declare module 'next-auth' {
   interface User {

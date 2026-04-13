@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { AlertTriangle, Wifi, WifiOff } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import StaffHeader from '@/components/staff/StaffHeader'
 import RequestList from '@/components/staff/RequestList'
 import NotificationBanner from '@/components/staff/NotificationBanner'

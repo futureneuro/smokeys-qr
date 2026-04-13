@@ -19,7 +19,7 @@ interface ActionButtonsProps {
   onError: (message: string) => void
 }
 
-const iconMap: Record<string, React.ComponentType<{ size: number; className: string }>> = {
+const iconMap: Record<string, any> = {
   'Call Waiter': Bell,
   'Request Bill': Receipt,
   'Order Drinks': Wine,

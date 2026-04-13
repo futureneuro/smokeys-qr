@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireAuth, requireAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  // Auth check — staff/admin can view tables
+  const session = await requireAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const restaurantId = request.nextUrl.searchParams.get('restaurantId');
 
@@ -32,6 +39,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Admin-only — only admins can create tables
+  const session = await requireAdmin();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const { number, restaurantId } = body;

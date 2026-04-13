@@ -27,13 +27,12 @@ export async function GET(request: NextRequest) {
 
     // Generate QR code pointing to /scan/[tableId]
     const qrUrl = `/scan/${tableId}`;
-    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+    const qrDataUrl = (await (QRCode as any).toDataURL(qrUrl, {
       errorCorrectionLevel: 'H',
       type: 'image/png',
-      quality: 0.95,
       margin: 1,
       width: 300,
-    });
+    })) as string;
 
     // Convert data URL to buffer
     const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');

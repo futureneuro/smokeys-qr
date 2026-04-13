@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,6 +42,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Admin-only — only admins can create promotions
+  const session = await requireAdmin();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const {
@@ -58,9 +65,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // TODO: Add admin authorization check
-    // For now, assume admin-only endpoint
 
     // Verify restaurant exists
     const restaurant = await db.restaurant.findUnique({
