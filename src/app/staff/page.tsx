@@ -158,9 +158,10 @@ export default function StaffPage() {
 
   const pendingCount = requests.filter((r) => r.status === 'PENDING').length
   const acceptedCount = requests.filter((r) => r.status === 'ACCEPTED').length
+  const activeRequests = requests.filter((r) => r.status !== 'AUTO_COMPLETED')
 
   const filterTabs: { label: string; value: FilterTab; count?: number }[] = [
-    { label: 'All', value: 'all', count: requests.length },
+    { label: 'All', value: 'all', count: activeRequests.length },
     { label: 'Pending', value: 'pending', count: pendingCount },
     { label: 'Accepted', value: 'accepted', count: acceptedCount },
     { label: 'Snoozed', value: 'snoozed', count: requests.filter((r) => r.status === 'SNOOZED').length },

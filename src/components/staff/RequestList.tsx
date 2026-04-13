@@ -33,7 +33,8 @@ interface RequestListProps {
 export default function RequestList({ requests, filter, onRequestsUpdate }: RequestListProps) {
   // Filter requests based on selected tab
   const filteredRequests = useMemo(() => {
-    let filtered = requests
+    // Filter out AUTO_COMPLETED items so they don't clog up the dashboard
+    let filtered = requests.filter((r) => r.status !== 'AUTO_COMPLETED')
 
     if (filter === 'pending') {
       filtered = filtered.filter((r) => r.status === 'PENDING')
@@ -46,8 +47,9 @@ export default function RequestList({ requests, filter, onRequestsUpdate }: Requ
     // Sort by urgency (urgent first, then warning, then normal) and by creation time
     return filtered.sort((a, b) => {
       const urgencyOrder = { urgent: 0, warning: 1, normal: 2 }
-      const aUrgency = urgencyOrder[getUrgencyLevel(a.createdAt)]
-      const bUrgency = urgencyOrder[getUrgencyLevel(b.createdAt)]
+      
+      const aUrgency = (a.status === 'COMPLETED' || a.status === 'SNOOZED') ? 2 : urgencyOrder[getUrgencyLevel(a.createdAt)]
+      const bUrgency = (b.status === 'COMPLETED' || b.status === 'SNOOZED') ? 2 : urgencyOrder[getUrgencyLevel(b.createdAt)]
 
       if (aUrgency !== bUrgency) {
         return aUrgency - bUrgency
@@ -80,6 +82,34 @@ export default function RequestList({ requests, filter, onRequestsUpdate }: Requ
       )
     } catch (error) {
       console.error('Error updating request status:', error)
+      throw error
+    }
+  }
+
+  const handleClearTable = async (tableId: string) => {
+    try {
+      const tableRequests = requests.filter(
+        (r) => r.tableId === tableId && r.status !== 'AUTO_COMPLETED' && r.status !== 'PENDING' && r.status !== 'ACCEPTED'
+      )
+      
+      await Promise.all(
+        tableRequests.map((r) => 
+          fetch(`/api/requests/${r.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'AUTO_COMPLETED' }),
+          })
+        )
+      )
+
+      // Update locally
+      const updatedIds = new Set(tableRequests.map((r) => r.id))
+      onRequestsUpdate(
+        requests.map((r) => (updatedIds.has(r.id) ? { ...r, status: 'AUTO_COMPLETED' } : r))
+      )
+    } catch (error) {
+      console.error('Error clearing table history:', error)
+      alert('Failed to clear table history')
       throw error
     }
   }
@@ -121,12 +151,14 @@ export default function RequestList({ requests, filter, onRequestsUpdate }: Requ
         <RequestCard
           key={request.id}
           id={request.id}
+          tableId={request.tableId}
           tableNumber={request.table.number}
           type={request.type}
           status={request.status}
           createdAt={request.createdAt}
           completedAt={request.completedAt}
           onStatusChange={handleStatusChange}
+          onClearTable={handleClearTable}
         />
       ))}
     </div>

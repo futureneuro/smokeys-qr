@@ -15,19 +15,25 @@ interface RequestCardProps {
   createdAt: string | Date
   completedAt: string | Date | null
   onStatusChange: (id: string, newStatus: ServiceRequestStatus) => Promise<void>
+  onClearTable?: (tableId: string) => Promise<void>
 }
 
 export default function RequestCard({
   id,
+  tableId,
   tableNumber,
   type,
   status,
   createdAt,
   completedAt: _completedAt,
   onStatusChange,
+  onClearTable,
 }: RequestCardProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const urgencyLevel = getUrgencyLevel(createdAt)
+  const baseUrgencyLevel = getUrgencyLevel(createdAt)
+  const urgencyLevel = (status === 'COMPLETED' || status === 'AUTO_COMPLETED' || status === 'SNOOZED') 
+    ? 'normal' 
+    : baseUrgencyLevel
   const timeAgo = formatTimeAgo(createdAt)
 
   const handleStatusChange = async (newStatus: ServiceRequestStatus) => {
@@ -37,6 +43,18 @@ export default function RequestCard({
     } catch (error) {
       console.error('Failed to update status:', error)
       alert('Failed to update request status')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleClearTable = async () => {
+    if (!onClearTable) return
+    setIsLoading(true)
+    try {
+      await onClearTable(tableId)
+    } catch (error) {
+      console.error('Failed to clear table:', error)
     } finally {
       setIsLoading(false)
     }
@@ -148,9 +166,20 @@ export default function RequestCard({
           )}
 
           {(status === 'COMPLETED' || status === 'AUTO_COMPLETED') && (
-            <div className="flex items-center space-x-2 bg-green-100 text-green-800 font-bold py-2 px-3 rounded-lg">
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="text-sm">Done</span>
+            <div className="flex flex-col gap-2 items-end">
+              <div className="flex items-center space-x-2 bg-green-100 text-green-800 font-bold py-2 px-3 rounded-lg">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm">Done</span>
+              </div>
+              {onClearTable && status === 'COMPLETED' && (
+                <button
+                  onClick={handleClearTable}
+                  disabled={isLoading}
+                  className="text-xs text-gray-500 hover:text-red-600 underline font-medium transition-colors"
+                >
+                  {isLoading ? 'Clearing...' : 'Clear Table History'}
+                </button>
+              )}
             </div>
           )}
         </div>
