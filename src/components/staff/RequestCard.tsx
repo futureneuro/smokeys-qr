@@ -83,7 +83,7 @@ export default function RequestCard({
     >
       {/* Urgent Pulse Animation */}
       {urgencyLevel === 'urgent' && (
-        <div className="absolute inset-0 rounded-lg animate-pulse bg-red-500 opacity-5"></div>
+        <div className="absolute inset-0 rounded-lg animate-pulse bg-red-500 opacity-5 pointer-events-none"></div>
       )}
 
       <div className="relative flex items-start justify-between">
