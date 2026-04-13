@@ -38,16 +38,20 @@ jobs:
           NEXTAUTH_URL: "https://smokeys-qr-app.azurewebsites.net"
           NODE_ENV: production
 
+      - name: Prepare standalone package
+        run: |
+          # Copy static assets into standalone build
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public 2>/dev/null || true
+
+      - name: Zip artifact for deployment
+        run: |
+          cd .next/standalone
+          zip -r ../../deploy.zip . -x "*.git*"
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .next/standalone
-
-      - name: Copy static assets
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .next/static
+          package: deploy.zip
